@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: azure-bicep-apim-app-gw
+metadata:
+    template: azd-init@1.20.3
+services:
+    function-app:
+        project: function-app
+        host: function
+        language: python
+
+infra:
+    provider: bicep
+    path: .
+
+hooks:
+  # This script gets my IP address
+  preprovision:
+    shell: pwsh
+    continueOnError: false
+    interactive: false
+    windows:
+      shell: pwsh
+      run: |
+        try {
+          $myIP = $(Invoke-WebRequest -Uri "https://api.ipify.org" -ErrorAction Stop).Content
+        } catch {
+          Write-Warning "Could not retrieve public IP from ipify. Setting MY_IP to empty."
+          $myIP = ""
+        }
+        azd env set MY_IP $myIP
+      interactive: false
+      continueOnError: false
+    posix:
+      shell: sh
+      run: |
+        set +e
+        myIP=$(curl -s https://api.ipify.org)
+        if [ -z "$myIP" ]; then
+          echo "Warning: Could not retrieve public IP from ipify."
+        fi
+        echo "MY_IP=$myIP"
+        azd env set MY_IP "$myIP"
+        set -e
+      interactive: false
+      continueOnError: false

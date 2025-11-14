@@ -117,7 +117,7 @@ resource apimBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-previe
 }
 
 // APIM API
-resource apimApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
+resource internalApimApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
   parent: apim
   name: 'func-api'
   properties: {
@@ -178,7 +178,7 @@ resource dummyGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024
 
 // APIM API Operation
 resource apimPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
-  parent: apimApi
+  parent: internalApimApi
   name: 'func-test-post'
   properties: {
     displayName: 'Function Test POST'
@@ -188,7 +188,7 @@ resource apimPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024
 }
 
 resource apimGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
-  parent: apimApi
+  parent: internalApimApi
   name: 'func-test-get'
   properties: {
     displayName: 'Function Test GET'
@@ -197,9 +197,78 @@ resource apimGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024-
   }
 }
 
+///---------------------- External APIM API
+resource externalApimApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
+  parent: apim
+  name: 'external-func-api'
+  properties: {
+    displayName: 'External Function API'
+    path: '/external/func-test'
+    protocols: ['https']
+    subscriptionRequired: true
+  }
+}
+
+// APIM API Operation
+resource externalApimPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: externalApimApi
+  name: 'func-test-post'
+  properties: {
+    displayName: 'Function Test POST'
+    method: 'POST'
+    urlTemplate: '/echo'
+  }
+}
+
+resource externalApimGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: externalApimApi
+  name: 'func-test-get'
+  properties: {
+    displayName: 'Function Test GET'
+    method: 'GET'
+    urlTemplate: '/echo'
+  }
+}
+
+resource externalApimApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
+  parent: externalApimApi
+  name: 'policy'
+  properties: {
+    value: '''
+      <policies>
+        <inbound>
+          <base />
+          <set-backend-service backend-id="function-backend" />
+        </inbound>
+        <backend>
+          <base />
+        </backend>
+        <outbound>
+          <base />
+        </outbound>
+        <on-error>
+          <base />
+        </on-error>
+      </policies>
+    '''
+    format: 'xml'
+  }
+  dependsOn: [apimBackend]
+}
+
+resource externalTagExternalApiLinks 'Microsoft.ApiManagement/service/tags/apiLinks@2024-10-01-preview' = {
+  parent: externalTag
+  name: 'external-api-tag-api-link'
+  properties: {
+    apiId: externalApimApi.id
+  }
+}
+
+// ----------------------------
+
 // APIM API Policy
 resource apimApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
-  parent: apimApi
+  parent: internalApimApi
   name: 'policy'
   properties: {
     value: '''

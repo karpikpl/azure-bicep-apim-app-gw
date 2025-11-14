@@ -45,7 +45,6 @@ resource appGw 'Microsoft.Network/applicationGateways@2024-05-01' = {
   properties: {
     sslCertificates: [
       {
-        
         name: 'ssl-appgw-external'
         properties: {
           keyVaultSecretId: keyVaultCertificateId
@@ -97,7 +96,7 @@ resource appGw 'Microsoft.Network/applicationGateways@2024-05-01' = {
           port: 80
         }
       }
-            {
+      {
         name: 'port_443'
         properties: {
           port: 443
@@ -114,6 +113,10 @@ resource appGw 'Microsoft.Network/applicationGateways@2024-05-01' = {
             }
           ]
         }
+      }
+      {
+        name: 'sink'
+        properties: {}
       }
     ]
     backendHttpSettingsCollection: [
@@ -148,7 +151,7 @@ resource appGw 'Microsoft.Network/applicationGateways@2024-05-01' = {
           protocol: 'Http'
         }
       }
-            {
+      {
         name: 'httpsListener'
         properties: {
           frontendIPConfiguration: {
@@ -170,44 +173,85 @@ resource appGw 'Microsoft.Network/applicationGateways@2024-05-01' = {
         }
       }
     ]
-    requestRoutingRules: [
+    urlPathMaps: [
       {
-        name: 'routingRule'
+        name: 'externalPathMap'
         properties: {
-          ruleType: 'Basic'
-          priority: 100
-          httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGwName, 'httpListener')
+          defaultBackendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGwName, 'sink')
           }
-          backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGwName, 'apimBackendPool')
-          }
-          backendHttpSettings: {
+          defaultBackendHttpSettings: {
             id: resourceId(
               'Microsoft.Network/applicationGateways/backendHttpSettingsCollection',
               appGwName,
               'apimHttpSettings'
             )
+          }
+          pathRules: [
+            {
+              name: 'externalApis'
+              properties: {
+                paths: ['/external/*']
+                backendAddressPool: {
+                  id: resourceId(
+                    'Microsoft.Network/applicationGateways/backendAddressPools',
+                    appGwName,
+                    'apimBackendPool'
+                  )
+                }
+                backendHttpSettings: {
+                  id: resourceId(
+                    'Microsoft.Network/applicationGateways/backendHttpSettingsCollection',
+                    appGwName,
+                    'apimHttpSettings'
+                  )
+                }
+              }
+            }
+            {
+              name: 'sink'
+              properties: {
+                paths: ['/*']
+                backendAddressPool: {
+                  id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGwName, 'sink')
+                }
+                backendHttpSettings: {
+                  id: resourceId(
+                    'Microsoft.Network/applicationGateways/backendHttpSettingsCollection',
+                    appGwName,
+                    'apimHttpSettings'
+                  )
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+    requestRoutingRules: [
+      {
+        name: 'routingRule'
+        properties: {
+          ruleType: 'PathBasedRouting'
+          priority: 100
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGwName, 'httpListener')
+          }
+          urlPathMap: {
+            id: resourceId('Microsoft.Network/applicationGateways/urlPathMaps', appGwName, 'externalPathMap')
           }
         }
       }
       {
         name: 'routingRule-https'
         properties: {
-          ruleType: 'Basic'
+          ruleType: 'PathBasedRouting'
           priority: 200
           httpListener: {
             id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGwName, 'httpsListener')
           }
-          backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGwName, 'apimBackendPool')
-          }
-          backendHttpSettings: {
-            id: resourceId(
-              'Microsoft.Network/applicationGateways/backendHttpSettingsCollection',
-              appGwName,
-              'apimHttpSettings'
-            )
+          urlPathMap: {
+            id: resourceId('Microsoft.Network/applicationGateways/urlPathMaps', appGwName, 'externalPathMap')
           }
         }
       }

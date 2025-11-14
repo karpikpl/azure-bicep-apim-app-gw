@@ -1,5 +1,17 @@
+/// About
+// This sample assumes a wildcard certificate that can be issued by Let's Encrypt or another CA
+// sample command: `certbot certonly --manual -d "*.cloud.XXXX.org"`
+// default domain for Application gateway is api-external.cloud.XXXX.org
+// default domain for APIM is api-external.cloud.XXXX.org and api-internal.cloud.XXXX.org
+// The certificate should be in PFX format with a passwordless private key
+//
 metadata name = 'Application Gateway to APIM to Azure Function with VNet Integration - Modular'
 metadata description = 'Deploys Application Gateway routing to APIM which routes to Azure Function App with secure VNet integration using modular architecture'
+
+var certFilePath = '../../../.ssh/cloud.karpala.pfx'
+var certFileBase64 = loadFileAsBase64(certFilePath)
+param customDomain string = 'cloud.karpala.org'
+param appGtwCustomDomain string = 'api-external.${customDomain}'
 
 @description('Azure region for resources')
 param location string = resourceGroup().location
@@ -80,6 +92,7 @@ module keyVault 'modules/utils/keyvault.bicep' = {
     privateEndpointSubnetId: networking.outputs.vmSubnetId
     privateDnsZoneResourceId: dns.outputs.AZURE_RESOURCE_DNS_KEYVAULT_PRIVATE_DNS_ZONE_ID
     secretName: 'apimdomain'
+    certFileBase64: certFileBase64
     publicAccessEnabled: true
   }
 }
@@ -132,7 +145,7 @@ module apim 'modules/apim/apim.bicep' = {
     functionAppId: functionApp.outputs.functionAppId
     userAssignedManagedIdentityId: apim_identity.outputs.AZURE_RESOURCE_USER_ASSIGNED_IDENTITY_ID
     certificateResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_SECRET_URI
-    customDomain: 'cloud.karpala.org'
+    customDomain: customDomain
   }
 }
 
@@ -147,7 +160,7 @@ module appGateway 'modules/gateway/app-gateway.bicep' = {
     backendFqdn: apim.outputs.apimInternalGatewayUrl
     identityId: appgtw_identity.outputs.AZURE_RESOURCE_USER_ASSIGNED_IDENTITY_ID
     keyVaultCertificateId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_SECRET_URI
-    customDomain: 'api.cloud.karpala.org'
+    customDomain: appGtwCustomDomain
   }
 }
 
@@ -174,7 +187,7 @@ module apimCustomDns 'modules/networking/apim-dns.bicep' = {
     vnetResourceId: networking.outputs.vnetId
     apimName: 'api'
     apimIpAddress: apim.outputs.apimPrivateIp
-    zoneName: 'cloud.karpala.org'
+    zoneName: customDomain
   }
 }
 

@@ -26,6 +26,8 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
   name: managedIdentityName
 }
 
+var functionHostKey = listkeys('${functionAppId}/host/default', '2024-11-01').functionKeys.default
+
 // API Management
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: apimName
@@ -64,7 +66,7 @@ resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
       }
       {
         type: 'Proxy'
-        hostName: 'api.${customDomain}'
+        hostName: 'api-external.${customDomain}'
         certificateSource: 'KeyVault'
         keyVaultId: certificateResourceId
         identityClientId: identity.properties.clientId
@@ -87,6 +89,16 @@ resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   }
 }
 
+resource namedValue 'Microsoft.ApiManagement/service/namedValues@2022-08-01' = {
+  name: 'functionapp-key'
+  parent: apim
+  properties: {
+    displayName: 'functionapp-key'
+    value: functionHostKey
+    secret: true
+  }
+}
+
 // APIM Backend for Function App
 resource apimBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = {
   parent: apim
@@ -96,6 +108,11 @@ resource apimBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-previe
     url: 'https://${functionAppHostName}/api'
     protocol: 'http'
     resourceId: '${environment().resourceManager}${functionAppId}'
+    credentials: {
+      header: {
+        'x-functions-key': ['{{${namedValue.name}}}']
+      }
+    }
   }
 }
 
@@ -111,6 +128,54 @@ resource apimApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
   }
 }
 
+resource externalTag 'Microsoft.ApiManagement/service/tags@2024-10-01-preview' = {
+  parent: apim
+  name: 'external'
+  properties: {
+    displayName: 'External'
+  }
+}
+
+resource externalTagApiLinks 'Microsoft.ApiManagement/service/tags/apiLinks@2024-10-01-preview' = {
+  parent: externalTag
+  name: 'external-tag-api-link'
+  properties: {
+    apiId: apimDummyApi.id
+  }
+}
+
+resource apimDummyApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
+  parent: apim
+  name: 'dummy-api'
+  properties: {
+    displayName: 'External Dummy API'
+    path: 'external/dummy-api'
+    protocols: ['https']
+    subscriptionRequired: true
+  }
+}
+
+// APIM API Operation
+resource dummyPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: apimDummyApi
+  name: 'dummy-post'
+  properties: {
+    displayName: 'Dummy POST'
+    method: 'POST'
+    urlTemplate: '/'
+  }
+}
+
+resource dummyGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: apimDummyApi
+  name: 'dummy-get'
+  properties: {
+    displayName: 'Dummy GET'
+    method: 'GET'
+    urlTemplate: '/'
+  }
+}
+
 // APIM API Operation
 resource apimPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
   parent: apimApi
@@ -118,7 +183,7 @@ resource apimPostOperation 'Microsoft.ApiManagement/service/apis/operations@2024
   properties: {
     displayName: 'Function Test POST'
     method: 'POST'
-    urlTemplate: '/'
+    urlTemplate: '/echo'
   }
 }
 
@@ -128,7 +193,7 @@ resource apimGetOperation 'Microsoft.ApiManagement/service/apis/operations@2024-
   properties: {
     displayName: 'Function Test GET'
     method: 'GET'
-    urlTemplate: '/'
+    urlTemplate: '/echo'
   }
 }
 
@@ -153,6 +218,43 @@ resource apimApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01
           <base />
         </on-error>
       </policies>
+    '''
+    format: 'xml'
+  }
+  dependsOn: [apimBackend]
+}
+
+// APIM API Policy
+resource apimDummyPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
+  parent: apimDummyApi
+  name: 'policy'
+  properties: {
+    value: '''
+  <policies>
+      <!-- Throttle, authorize, validate, cache, or transform the requests -->
+      <inbound>
+          <return-response>
+              <set-status code="200" reason="OK" />
+              <set-header name="X-MY-API" exists-action="override">
+                  <value>20</value>
+              </set-header>
+              <set-body>This is a response from External API</set-body>
+          </return-response>
+          <base />
+      </inbound>
+      <!-- Control if and how the requests are forwarded to services  -->
+      <backend>
+          <base />
+      </backend>
+      <!-- Customize the responses -->
+      <outbound>
+          <base />
+      </outbound>
+      <!-- Handle exceptions and customize error responses  -->
+      <on-error>
+          <base />
+      </on-error>
+  </policies>
     '''
     format: 'xml'
   }

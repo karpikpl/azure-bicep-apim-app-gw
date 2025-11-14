@@ -46,6 +46,42 @@ module defaultNetworkSecurityGroup 'br/public:avm/res/network/network-security-g
   }
 }
 
+module appGtwSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
+  name: 'appgw-network-security-group'
+  params: {
+    name: 'appgw-nsg'
+    location: location
+    securityRules: [
+      {
+        name: 'Allow-HTTP-Inbound'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '80'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+      {
+        name: 'Allow-HTTPS-Inbound'
+        properties: {
+          priority: 110
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+    ]
+  }
+}
+
 // Virtual Network
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName

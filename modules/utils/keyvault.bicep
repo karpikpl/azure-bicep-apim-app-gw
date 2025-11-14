@@ -11,6 +11,7 @@ param privateEndpointName string = '${name}-pe'
 param privateDnsZoneResourceId string = ''
 @description('If true, the key vault will allow public access. Not recommended for production scenarios.')
 param publicAccessEnabled bool = false
+param certFileBase64 string
 
 var secretsUserAssignments = [
   for principalIdItem in userAssignedManagedIdentityPrincipalIds: {
@@ -93,7 +94,7 @@ module vault 'br/public:avm/res/key-vault/vault:0.13.3' = {
       {
         name: secretName
         contentType: 'application/x-pkcs12'
-        value: loadFileAsBase64('../../../../../.ssh/cloud.karpala.pfx') // Placeholder, actual value to be set via deployment script or CLI after deployment
+        value: certFileBase64
       }
     ]
 

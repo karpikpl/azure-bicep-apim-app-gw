@@ -103,18 +103,6 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'AzureWebJobsStorage__accountName'
           value: storageAccountName
         }
-        //         {
-        //   name: 'AzureWebJobsStorage__blobServiceUri'
-        //   value: storageEndpoints.blob
-        // }
-        // {
-        //   name: 'AzureWebJobsStorage__queueServiceUri'
-        //   value: storageEndpoints.queue
-        // }
-        // {
-        //   name: 'AzureWebJobsStorage__tableServiceUri'
-        //   value: storageEndpoints.table
-        // }
         {
           name: 'AzureWebJobsStorage__credential'
           value: 'managedidentity'
@@ -126,18 +114,6 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
         {
           name: 'AzureWebJobsStorage__clientId'
           value: identity.properties.clientId
-        }
-        {
-          name: 'AzureWebJobsStorage__managedIdentityResourceId'
-          value: identity.id
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'WEBSITE_VNET_ROUTE_ALL'
-          value: '1'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

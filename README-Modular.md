@@ -19,9 +19,8 @@ This repository contains a modular version of the Application Gateway + API Mana
 │   │   └── apim.bicep             # API Management with backend configuration
 │   └── gateway/
 │       └── app-gateway.bicep      # Application Gateway with routing rules
-├── scenario2-appgw-apim-function-modular.bicep      # Main orchestration template
-├── scenario2-appgw-apim-function-modular.bicepparam # Parameters file
-├── deploy-scenario2-modular.ps1                     # PowerShell deployment script
+├── main.bicep      # Main orchestration template
+├── main.bicepparam # Parameters file
 └── README-Modular.md                                # This documentation
 ```
 
@@ -82,25 +81,9 @@ This repository contains a modular version of the Application Gateway + API Mana
 - PowerShell 7+ (for deployment script)
 - Appropriate Azure permissions (Contributor or Owner)
 
-### Quick Deploy
-```powershell
-# Deploy to new resource group
-.\deploy-scenario2-modular.ps1 -ResourceGroupName "my-apim-appgw-rg"
-
-# Deploy to existing resource group in specific region
-.\deploy-scenario2-modular.ps1 -ResourceGroupName "my-existing-rg" -Location "West Europe"
-```
-
 ### Manual Deploy
 ```bash
-# Create resource group
-az group create --name "my-apim-appgw-rg" --location "East US"
-
-# Deploy the template
-az deployment group create \
-    --resource-group "my-apim-appgw-rg" \
-    --template-file "./scenario2-appgw-apim-function-modular.bicep" \
-    --parameters "./scenario2-appgw-apim-function-modular.bicepparam"
+azd up
 ```
 
 ## 📋 Key Improvements Over Monolithic Template
@@ -151,10 +134,6 @@ After deployment, you'll receive:
 - **APIM Gateway URL**: Internal APIM endpoint
 - **Function App Name**: For deployment and management
 - **Virtual Network Name**: For reference and additional resources
-
-## 🔗 Related Files
-- Original monolithic template: `scenario2-appgw-apim-function.bicep`
-- Scenario 1 (simplified): `scenario1-apim-function.bicep`
 
 ## 🤝 Contributing
 When adding new modules:

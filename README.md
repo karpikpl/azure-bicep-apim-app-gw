@@ -1,6 +1,6 @@
 # 🚀 Azure APIM & Application Gateway with Function App
 
-This repository contains two Bicep deployment scenarios comparing architectures for routing requests to Azure Functions through API Management with secure VNet integration.
+This repository contains Bicep deployment for routing requests to Azure Functions through API Management with secure VNet integration.
 
 > **Flex Consumption** hosting plan - a cost-effective serverless option with VNet support, offering ~70% savings over Elastic Premium while maintaining network isolation capabilities.
 
@@ -26,16 +26,16 @@ graph LR
 
 ## 📦 Resources Deployed
 
-### 🎯 Common Resources (Both Scenarios)
+### 🎯 Common Resources
 
 #### 🌐 Virtual Network
-- **Address Space**: 10.0.0.0/16 (Scenario 1) / 10.1.0.0/16 (Scenario 2)
+- **Address Space**: 10.0.0.0/16
 - **Subnets**: Dedicated subnets for each service (APIM, Function, App Gateway)
 - **Service Endpoints**: Storage and Web services
 - **Subnet Delegation**: Function subnet delegated to serverFarms
 
 #### 🔌 Azure API Management (Developer SKU)
-- **VNet Mode**: External (Scenario 1) / Internal (Scenario 2)
+- **VNet Mode**: Internal
 - **API Gateway**: Centralized API management and routing
 - **Policies**: Request transformation, backend routing, throttling
 - **Security**: Subscription keys, OAuth 2.0, mutual TLS support
@@ -69,7 +69,7 @@ graph LR
 - **Features**: Log queries, workbooks, alerts
 - **Integration**: Centralized logging for all resources
 
-### 🛡️ Scenario 2 Additional Resources
+### 🛡️ Additional Resources
 
 #### 🔒 Application Gateway v2 (Standard_v2)
 - **Capacity**: 2 instances (autoscale 1-125)
@@ -112,25 +112,15 @@ After deployment:
 1. 🔑 **Get APIM subscription key** from Azure Portal:
    - Navigate to APIM resource → Subscriptions → Built-in all-access subscription
 
-2. 🎯 **Test Scenario 1:**
-```powershell
-$apimUrl = "<apim-gateway-url>"
-$subscriptionKey = "<subscription-key>"
 
-Invoke-RestMethod -Method POST -Uri "$apimUrl/echo" `
-    -Headers @{"Ocp-Apim-Subscription-Key"=$subscriptionKey} `
-    -Body '{"message":"Hello from Scenario 1"}' `
-    -ContentType "application/json"
-```
-
-3. 🎯 **Test Scenario 2:**
+2. 🎯 **Test:**
 ```powershell
 $appGwIp = "<app-gateway-public-ip>"
 $subscriptionKey = "<subscription-key>"
 
-Invoke-RestMethod -Method POST -Uri "http://$appGwIp/echo" `
+Invoke-RestMethod -Method POST -Uri "http://$appGwIp/external/func-test/echo" `
     -Headers @{"Ocp-Apim-Subscription-Key"=$subscriptionKey} `
-    -Body '{"message":"Hello from Scenario 2"}' `
+    -Body '{"message":"Hello"}' `
     -ContentType "application/json"
 ```
 
